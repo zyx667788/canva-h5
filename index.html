@@ -1,0 +1,594 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>一键开画｜Canva 可画 H5 交互作品</title>
+  <meta name="description" content="全国大学生广告艺术大赛命题 H5：一键开画。把想法变成能看的作品。" />
+  <style>
+    :root {
+      --bg: #f6fbff;
+      --bg2: #eef5ff;
+      --surface: rgba(255,255,255,.82);
+      --surface-strong: rgba(255,255,255,.96);
+      --text: #10203a;
+      --muted: #6e7f9a;
+      --line: rgba(16,32,58,.10);
+      --primary: #4a8df8;
+      --secondary: #6b5cf6;
+      --accent: #ffbd38;
+      --success: #23c47e;
+      --shadow: 0 22px 54px rgba(20,40,78,.14);
+      --shadow-soft: 0 12px 28px rgba(20,40,78,.08);
+      --radius-xl: 30px;
+      --radius-lg: 22px;
+      --radius-md: 16px;
+      --page-pad: 20px;
+    }
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      font-family: Inter, PingFang SC, Noto Sans SC, system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background:
+        radial-gradient(circle at 12% 8%, rgba(74,141,248,.15), transparent 24%),
+        radial-gradient(circle at 88% 16%, rgba(107,92,246,.13), transparent 22%),
+        linear-gradient(180deg, #f9fcff 0%, #edf5ff 100%);
+      color: var(--text);
+      overflow: hidden;
+      -webkit-font-smoothing: antialiased;
+      text-rendering: optimizeLegibility;
+    }
+    button, input { font: inherit; }
+    button {
+      border: 0;
+      background: none;
+      color: inherit;
+      padding: 0;
+      cursor: pointer;
+    }
+    button:focus-visible, a:focus-visible, input:focus-visible {
+      outline: 3px solid rgba(74,141,248,.30);
+      outline-offset: 3px;
+    }
+    .app { position: relative; width: 100vw; height: 100vh; overflow: hidden; }
+    .progress {
+      position: fixed; inset: 0 0 auto 0; height: 4px; z-index: 40;
+      background: rgba(16,32,58,.08);
+      backdrop-filter: blur(10px);
+    }
+    .progress > span {
+      display:block; height:100%; width:14.2857%; border-radius:0 999px 999px 0;
+      background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent));
+      transition: width .28s ease;
+    }
+    .dots {
+      position: fixed; right: 10px; top: 50%; transform: translateY(-50%); z-index: 50;
+      display:flex; flex-direction:column; gap: 10px; padding: 10px 6px; border-radius: 999px;
+      background: rgba(255,255,255,.34); backdrop-filter: blur(10px); box-shadow: var(--shadow-soft);
+    }
+    .dot { width: 10px; height: 10px; min-width: 10px; min-height: 10px; border-radius: 999px; background: rgba(16,32,58,.18); transition: all .25s ease; }
+    .dot[aria-current="true"] { width: 24px; background: linear-gradient(90deg, var(--primary), var(--secondary)); }
+    .scroller { height:100vh; width:100vw; overflow-y:auto; overflow-x:hidden; scroll-snap-type:y mandatory; -webkit-overflow-scrolling: touch; overscroll-behavior-y: contain; }
+    .page {
+      position: relative; min-height: 100svh; scroll-snap-align:start;
+      display:flex; align-items:center; justify-content:center;
+      padding: calc(18px + env(safe-area-inset-top)) var(--page-pad) calc(26px + env(safe-area-inset-bottom));
+    }
+    .shell { position: relative; width: min(100%, 480px); display:flex; flex-direction:column; gap:16px; }
+    .eyebrow { display:inline-flex; align-items:center; gap:8px; color: var(--primary); font-size: 12px; font-weight: 800; letter-spacing: .14em; text-transform: uppercase; }
+    .eyebrow::before { content:""; width:24px; height:1px; background: currentColor; opacity:.6; }
+    h1, h2, h3, p { margin: 0; }
+    .title { font-size: clamp(28px, 7.8vw, 44px); line-height: 1.05; letter-spacing: -.04em; font-weight: 850; }
+    .subtitle { font-size: 15px; line-height: 1.72; color: var(--muted); }
+    .card { background: var(--surface); border: 1px solid rgba(255,255,255,.58); box-shadow: var(--shadow); backdrop-filter: blur(18px); border-radius: var(--radius-xl); }
+    .panel { background: var(--surface-strong); border: 1px solid var(--line); border-radius: var(--radius-lg); box-shadow: var(--shadow-soft); }
+    .btn-row { display:flex; flex-wrap:wrap; gap: 10px; }
+    .btn { min-height: 46px; padding: 0 18px; border-radius: 999px; display:inline-flex; align-items:center; justify-content:center; gap:8px; font-size:14px; font-weight: 750; }
+    .btn-primary.btn-liquid { color: white; background: linear-gradient(135deg, var(--primary), var(--secondary)); box-shadow: 0 14px 30px rgba(74,141,248,.24); }
+    .btn-light.btn-liquid { background: rgba(255,255,255,.88); border: 1px solid var(--line); }
+    .badge { display:inline-flex; align-items:center; gap:8px; min-height: 34px; padding: 0 12px; border-radius: 999px; background: rgba(255,255,255,.9); border: 1px solid rgba(16,32,58,.08); font-size: 12px; font-weight: 700; color: var(--muted); }
+    .hero { overflow:hidden; }
+    .hero-grid { display:grid; gap: 14px; }
+    .hero-vis { position: relative; min-height: 330px; border-radius: 28px; background:
+        radial-gradient(circle at 20% 20%, rgba(74,141,248,.15), transparent 30%),
+        radial-gradient(circle at 80% 24%, rgba(107,92,246,.12), transparent 25%),
+        linear-gradient(180deg, #ffffff 0%, #f5f9ff 100%); border: 1px solid rgba(16,32,58,.06); box-shadow: var(--shadow-soft); overflow:hidden; }
+    .hero-vis img { width: 100%; height: 100%; object-fit: cover; border-radius: 28px; }
+    .orb { display: none; } /* 使用真实图片替代装饰球 */
+    .phone { position:absolute; left: 50%; top: 48%; transform: translate(-50%, -46%); width: min(320px, 76vw); height: 250px; border-radius: 34px; background: rgba(255,255,255,.94); border: 1px solid rgba(16,32,58,.08); box-shadow: 0 24px 58px rgba(30,44,74,.18); overflow:hidden; }
+    .phone::before { content:""; position:absolute; inset: 10px 18px auto 18px; height: 8px; border-radius:999px; background: rgba(16,32,58,.06); }
+    .phone-inner { position:absolute; inset: 34px 14px 14px; border-radius: 24px; background: linear-gradient(180deg, #f6fbff, #eef5ff); overflow:hidden; }
+    .mini-card { position:absolute; border-radius: 18px; background: rgba(255,255,255,.95); border: 1px solid rgba(16,32,58,.07); box-shadow: 0 14px 30px rgba(20,40,78,.11); }
+    .mini-card.c1 { left: 12px; top: 14px; width: 112px; height: 92px; transform: rotate(-8deg); }
+    .mini-card.c2 { right: 14px; top: 22px; width: 88px; height: 112px; transform: rotate(6deg); background: linear-gradient(180deg, rgba(255,255,255,.98), rgba(255,249,240,.95)); }
+    .mini-card.c3 { left: 24px; bottom: 22px; width: 174px; height: 86px; transform: rotate(3deg); background: linear-gradient(90deg, rgba(74,141,248,.15), rgba(107,92,246,.12)); }
+    .chip { position:absolute; padding: 7px 10px; border-radius: 999px; background: rgba(255,255,255,.95); border: 1px solid rgba(16,32,58,.08); box-shadow: 0 10px 24px rgba(20,40,78,.08); font-size: 11px; font-weight: 800; color: var(--text); }
+    .chip.a { left: 16px; bottom: 16px; }
+    .chip.b { right: 16px; bottom: 30px; }
+    .chip.c { left: 24px; top: 20px; }
+    .grid-3 { display:grid; gap: 12px; grid-template-columns: repeat(3, minmax(0, 1fr)); }
+    .grid-2 { display:grid; gap: 12px; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .tap-card { padding: 16px; border-radius: 24px; border: 1px solid rgba(16,32,58,.08); background: rgba(255,255,255,.92); box-shadow: 0 10px 24px rgba(20,40,78,.05); transition: transform .18s ease, border-color .18s ease, box-shadow .18s ease; text-align:left; }
+    .tap-card strong { display:block; font-size: 15px; margin-bottom: 6px; }
+    .tap-card span { font-size: 13px; line-height: 1.5; color: var(--muted); }
+    .tap-card.active { border-color: rgba(74,141,248,.35); box-shadow: 0 16px 34px rgba(74,141,248,.14); transform: translateY(-1px); }
+    .feature { padding: 18px; border-radius: 24px; background: rgba(255,255,255,.92); border: 1px solid rgba(16,32,58,.08); }
+    .feature h3 { font-size: 18px; margin-bottom: 8px; letter-spacing: -.03em; }
+    .feature p { font-size: 14px; line-height: 1.7; color: var(--muted); }
+    .toggle-line { display:flex; gap: 8px; flex-wrap:wrap; }
+    .toggle { min-height: 42px; padding: 0 16px; border-radius: 999px; border: 1px solid rgba(16,32,58,.10); background: rgba(255,255,255,.9); font-size: 13px; font-weight: 750; }
+    .toggle.on { color: white; border-color: transparent; background: linear-gradient(135deg, var(--primary), var(--secondary)); }
+    .quiz-option { padding: 15px 16px; border-radius: 20px; border: 1px solid rgba(16,32,58,.09); background: rgba(255,255,255,.92); font-weight: 750; font-size: 14px; text-align:left; }
+    .quiz-option.active { border-color: rgba(107,92,246,.34); box-shadow: 0 16px 30px rgba(107,92,246,.12); }
+    .result-box { padding: 18px; border-radius: 24px; background: linear-gradient(180deg, rgba(74,141,248,.12), rgba(107,92,246,.08)); border: 1px solid rgba(74,141,248,.16); }
+    .compare { position:relative; overflow:hidden; min-height: 340px; border-radius: 28px; border: 1px solid rgba(16,32,58,.08); background: rgba(255,255,255,.92); box-shadow: var(--shadow-soft); }
+    .compare .before, .compare .after { position:absolute; inset: 0; padding: 18px; }
+    .compare .before { background: linear-gradient(180deg, #f7f3ec, #f0ebe1); color: #42392d; }
+    .compare .after { background: linear-gradient(180deg, rgba(74,141,248,.10), rgba(107,92,246,.12)); clip-path: inset(0 0 0 var(--split, 50%)); }
+    .compare .label { display:inline-flex; align-items:center; gap:8px; padding: 8px 11px; border-radius: 999px; font-size: 12px; font-weight: 850; letter-spacing:.06em; text-transform: uppercase; background: rgba(255,255,255,.86); border: 1px solid rgba(16,32,58,.08); }
+    .slider-wrap { display:flex; align-items:center; gap: 10px; margin-top: 14px; }
+    input[type=range] { width: 100%; accent-color: var(--primary); }
+    .theme-grid { display:grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 10px; }
+    .theme { padding: 15px; border-radius: 20px; border: 1px solid rgba(16,32,58,.08); background: rgba(255,255,255,.92); text-align:left; }
+    .theme.active { border-color: rgba(74,141,248,.30); box-shadow: 0 16px 32px rgba(74,141,248,.10); }
+    .theme .name { display:block; font-size: 15px; font-weight: 850; margin-bottom: 4px; }
+    .theme .desc { font-size: 13px; line-height: 1.6; color: var(--muted); }
+    .final-qr { display:grid; gap: 16px; place-items:center; }
+    .qr { width: 210px; height: 210px; padding: 10px; border-radius: 28px; background: white; border: 1px solid rgba(16,32,58,.10); box-shadow: var(--shadow); }
+    .qr img { width:100%; height:100%; display:block; object-fit:contain; border-radius: 18px; }
+    .small { font-size: 12px; line-height: 1.7; color: var(--muted); }
+    .list { display:grid; gap: 8px; }
+    .list div { display:flex; align-items:flex-start; gap: 8px; font-size: 13px; line-height: 1.6; color: var(--muted); }
+    .list div::before { content:"•"; color: var(--primary); font-weight: 900; margin-top: -1px; }
+    .pill { display:inline-flex; align-items:center; gap:8px; min-height: 32px; padding: 0 12px; border-radius: 999px; background: rgba(255,255,255,.9); border: 1px solid rgba(16,32,58,.08); font-size: 12px; font-weight: 800; color: var(--text); }
+    .footer-note { text-align:center; color: var(--muted); font-size: 11px; letter-spacing: .14em; text-transform: uppercase; }
+    @keyframes float { 0%,100%{ transform: translate3d(0,0,0) } 50%{ transform: translate3d(0,-12px,0) } }
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; }
+    }
+  
+    /* ===== 液态玻璃动效 ===== */
+    .liquid-bg {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+      pointer-events: none;
+    }
+    .liquid-blob {
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(40px);
+      opacity: 0.6;
+      animation: blob-float 20s ease-in-out infinite;
+    }
+    .liquid-blob.blob-1 {
+      width: 500px; height: 500px;
+      left: -100px; top: -100px;
+      background: radial-gradient(circle, rgba(74,141,248,0.4) 0%, transparent 70%);
+      animation-delay: 0s;
+    }
+    .liquid-blob.blob-2 {
+      width: 400px; height: 400px;
+      right: -50px; top: 20%;
+      background: radial-gradient(circle, rgba(107,92,246,0.35) 0%, transparent 70%);
+      animation-delay: -7s;
+    }
+    .liquid-blob.blob-3 {
+      width: 450px; height: 450px;
+      left: 30%; bottom: -150px;
+      background: radial-gradient(circle, rgba(255,189,56,0.25) 0%, transparent 70%);
+      animation-delay: -14s;
+    }
+    @keyframes blob-float {
+      0%, 100% { transform: translate(0, 0) scale(1); }
+      25% { transform: translate(30px, -30px) scale(1.1); }
+      50% { transform: translate(-20px, 20px) scale(0.9); }
+      75% { transform: translate(20px, 30px) scale(1.05); }
+    }
+    /* 玻璃拟态卡片增强 */
+    .glass-card {
+      background: linear-gradient(135deg, rgba(255,255,255,0.85) 0%, rgba(255,255,255,0.4) 100%);
+      backdrop-filter: blur(20px);
+      -webkit-backdrop-filter: blur(20px);
+      border: 1px solid rgba(255,255,255,0.6);
+      border-top: 1px solid rgba(255,255,255,0.9);
+      border-left: 1px solid rgba(255,255,255,0.9);
+      box-shadow: 
+        0 8px 32px rgba(20, 40, 78, 0.15),
+        inset 0 1px 0 rgba(255,255,255,0.8),
+        inset 0 -1px 0 rgba(255,255,255,0.3);
+    }
+    /* 液态流动装饰 */
+    .liquid-wave {
+      position: absolute;
+      width: 200%;
+      height: 200%;
+      background: linear-gradient(
+        90deg,
+        transparent 0%,
+        rgba(74,141,248,0.1) 25%,
+        rgba(107,92,246,0.15) 50%,
+        rgba(74,141,248,0.1) 75%,
+        transparent 100%
+      );
+      animation: wave-flow 8s linear infinite;
+      transform: rotate(-15deg);
+    }
+    @keyframes wave-flow {
+      0% { transform: translateX(-50%) rotate(-15deg) translateY(0); }
+      100% { transform: translateX(-50%) rotate(-15deg) translateY(-100%); }
+    }
+    /* 按钮液态效果 */
+    .btn-liquid {
+      position: relative;
+      overflow: hidden;
+      transition: all 0.3s ease;
+    }
+    .btn-liquid::before {
+      content: '';
+      position: absolute;
+      top: 0; left: -100%;
+      width: 100%; height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.3), transparent);
+      transition: left 0.5s ease;
+    }
+    .btn-liquid:hover::before {
+      left: 100%;
+    }
+    .btn-liquid:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 18px 40px rgba(74,141,248,0.3);
+    }
+    /* 页面进入动画 */
+    .page-enter {
+      animation: page-enter 0.6s ease-out both;
+    }
+    @keyframes page-enter {
+      0% { opacity: 0; transform: translateY(30px) scale(0.98); }
+      100% { opacity: 1; transform: translateY(0) scale(1); }
+    }
+    /* 元素悬停液态效果 */
+    .liquid-hover {
+      transition: all 0.4s cubic-bezier(0.34, 1.56, 0.64, 1);
+    }
+    .liquid-hover:hover {
+      transform: scale(1.02) rotate(-1deg);
+      box-shadow: 0 25px 50px rgba(20,40,78,0.2);
+    }
+    /* 渐变文字动画 */
+    .gradient-text {
+      background: linear-gradient(90deg, var(--primary), var(--secondary), var(--accent), var(--primary));
+      background-size: 300% 100%;
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+      animation: gradient-shift 5s ease infinite;
+    }
+    @keyframes gradient-shift {
+      0%, 100% { background-position: 0% 50%; }
+      50% { background-position: 100% 50%; }
+    }
+    /* 脉冲光效 */
+    .pulse-glow {
+      animation: pulse-glow 2s ease-in-out infinite;
+    }
+    @keyframes pulse-glow {
+      0%, 100% { box-shadow: 0 0 20px rgba(74,141,248,0.3); }
+      50% { box-shadow: 0 0 40px rgba(74,141,248,0.6), 0 0 60px rgba(107,92,246,0.4); }
+    }
+    /* 浮动动画增强 */
+    @keyframes float {
+      0%, 100% { transform: translate3d(0,0,0); }
+      50% { transform: translate3d(0,-15px,0); }
+    }
+    /* 旋转光晕 */
+    .spin-glow {
+      position: absolute;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(74,141,248,0.2) 0%, transparent 70%);
+      animation: spin-glow 10s linear infinite;
+    }
+    @keyframes spin-glow {
+      0% { transform: rotate(0deg) scale(1); }
+      50% { transform: rotate(180deg) scale(1.2); }
+      100% { transform: rotate(360deg) scale(1); }
+    }
+</style>
+</head>
+<body>
+  <div class="app">
+      <div class="liquid-bg">
+        <div class="liquid-blob blob-1"></div>
+        <div class="liquid-blob blob-2"></div>
+        <div class="liquid-blob blob-3"></div>
+      </div>
+
+    <div class="progress"><span id="bar"></span></div>
+    <div class="dots" aria-label="Page navigation">
+      <button class="dot" data-goto="0" aria-current="true" aria-label="第 1 页"></button>
+      <button class="dot" data-goto="1" aria-label="第 2 页"></button>
+      <button class="dot" data-goto="2" aria-label="第 3 页"></button>
+      <button class="dot" data-goto="3" aria-label="第 4 页"></button>
+      <button class="dot" data-goto="4" aria-label="第 5 页"></button>
+      <button class="dot" data-goto="5" aria-label="第 6 页"></button>
+      <button class="dot" data-goto="6" aria-label="第 7 页"></button>
+    </div>
+
+    <main class="scroller" id="scroller">
+      <section class="page">
+        <div class="shell hero">
+          <div class="badge">全国大学生广告艺术大赛 · H5 交互作品</div>
+          <div class="hero-grid">
+            <div>
+              <p class="eyebrow">Canva 命题 / 互动创作</p>
+              <h1 class="title" style="margin-top:12px;">一键开画<br/>把想法变成能看的作品</h1>
+              <p class="subtitle" style="margin-top:12px; max-width: 34ch;">把“不会设计、没时间、没灵感”做成一个轻互动故事：看、点、选、比，最后落到一个能扫码提交的收尾页。</p>
+            </div>
+            <div class="hero-vis card" style="position:relative; overflow:hidden;">
+              <img src="assets/images/chatgpt_1778157833436.jpg" alt="液态玻璃背景" style="position:absolute; inset:0; width:100%; height:100%; object-fit:cover; opacity:0.3;">
+              <img src="assets/images/chatgpt_1778156519728.jpg" alt="Canva 设计界面展示" style="position:relative; width:100%; height:100%; object-fit:cover; border-radius:28px;">
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" data-next>开始体验</button>
+            <button class="btn btn-light" data-goto="6">直接看收尾页</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page">
+        <div class="shell">
+          <p class="eyebrow">Page 02 / 痛点导入</p>
+          <h2 class="title">设计难吗？<br/>其实卡住的是这三件事</h2>
+          <div class="grid-3" style="margin-top:4px;">
+            <button class="tap-card active" data-pain="0"><strong>不会排版</strong><span>信息很多，但页面总是乱。</span></button>
+            <button class="tap-card" data-pain="1"><strong>没有灵感</strong><span>想做得好看，却不知道从哪开始。</span></button>
+            <button class="tap-card" data-pain="2"><strong>时间太赶</strong><span>作业、活动、社媒图都要快。</span></button>
+          </div>
+          <div class="panel" id="pain-text" style="padding:18px;">
+            <p style="font-size:18px; font-weight:850; letter-spacing:-.03em;">先别急着做设计，先把“问题”说清楚。</p>
+            <p class="subtitle" style="margin-top:8px;">对大多数学生来说，设计不是不会，而是没有一套能迅速起步的方法。Canva 的作用，就是让起步成本变低。</p>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" data-next>继续看解决方案</button>
+          </div>
+        </div>
+      </section>
+
+      <section class="page">
+        <div class="shell">
+          <p class="eyebrow">Page 03 / 三件核心能力</p>
+          <h2 class="title">模板、拖拽、协作<br/>把复杂的设计动作压缩成三步</h2>
+          <div style="width:100%; max-width:500px; margin:16px auto;">
+            <img src="assets/images/chatgpt_1778156910451.jpg" alt="三大核心功能" style="width:100%; border-radius:16px;">
+          </div>
+          <div class="grid-3">
+            <div class="feature"><h3>模板库</h3><p>先选一个合适的框架，再改内容。不是从零开始，而是从“可用”开始。</p></div>
+            <div class="feature"><h3>拖拽编辑</h3><p>像摆卡片一样排版。移动、替换、缩放，直觉比学习成本更重要。</p></div>
+            <div class="feature"><h3>协作发布</h3><p>班级、社团、团队可以一起改。设计不再是一个人的苦差事。</p></div>
+          </div>
+          <div class="panel" style="padding:18px; position:relative; overflow:hidden;">
+            <div class="liquid-wave" style="top:0; left:0; opacity:0.5;"></div>
+            <div class="liquid-wave" style="top:0; left:50%; opacity:0.3; animation-delay:-4s;"></div>
+            <div class="toggle-line" role="tablist" aria-label="创作方式切换">
+              <button class="toggle on" data-mode="poster">海报</button>
+              <button class="toggle" data-mode="social">社媒图</button>
+              <button class="toggle" data-mode="deck">课件页</button>
+              <button class="toggle" data-mode="video">封面图</button>
+            </div>
+            <div style="margin-top:14px; padding:16px; border-radius:20px; background:linear-gradient(135deg, rgba(74,141,248,.12), rgba(107,92,246,.10)); border:1px solid rgba(74,141,248,.14);">
+              <div id="mode-title" style="font-size:18px; font-weight:850; letter-spacing:-.03em;">海报：一眼抓住主题</div>
+              <div id="mode-desc" class="subtitle" style="margin-top:8px;">适合活动、比赛、校园宣传。先定视觉中心，再补信息层级。</div>
+            </div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" data-next>进入互动测试</button></div>
+        </div>
+      </section>
+
+      <section class="page">
+        <div class="shell">
+          <p class="eyebrow">Page 04 / 互动测试</p>
+          <h2 class="title">你最像哪种创作者？<br/>选一个场景就能看到结果</h2>
+          <div class="grid-2">
+            <button class="quiz-option active" data-quiz="0">社团海报：要快、要醒目、要好交差</button>
+            <button class="quiz-option" data-quiz="1">课程展示：要清楚、要稳、要不出错</button>
+            <button class="quiz-option" data-quiz="2">活动宣传：要有气氛、要能传播</button>
+            <button class="quiz-option" data-quiz="3">视频封面：要第一眼就想点</button>
+          </div>
+          <div class="result-box" id="quiz-result">
+            <p style="font-size:18px; font-weight:850; letter-spacing:-.03em;">结果：社团海报型创作者</p>
+            <p class="subtitle" style="margin-top:8px;">你最需要的是模板起步 + 快速替换文案。页面应该先帮你抓住主视觉，再补信息。</p>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" data-next>看前后对比</button></div>
+        </div>
+      </section>
+
+      <section class="page">
+        <div class="shell">
+          <p class="eyebrow">Page 05 / 前后对比</p>
+          <h2 class="title">同一份内容，<br/>从草稿到成品只差一次整理</h2>
+          <div style="width:100%; max-width:500px; margin:16px auto;">
+            <img src="assets/images/chatgpt_1778157915088.jpg" alt="前后对比" style="width:100%; border-radius:16px;" class="liquid-hover">
+          </div>
+          <div class="compare" style="--split:50%;">
+            <div class="before">
+              <div class="label">Before / 零散信息</div>
+              <div style="margin-top:16px; display:grid; gap:10px;">
+                <div class="pill">主题：有了</div>
+                <div class="pill">文案：零碎</div>
+                <div class="pill">配色：未定</div>
+                <div class="pill">层级：看不清</div>
+              </div>
+            </div>
+            <div class="after">
+              <div class="label">After / 一页成片</div>
+              <div style="margin-top:16px; display:grid; gap:10px;">
+                <div class="pill" style="background:#fff;">标题更短</div>
+                <div class="pill" style="background:#fff;">视觉更集中</div>
+                <div class="pill" style="background:#fff;">色彩更统一</div>
+                <div class="pill" style="background:#fff;">行动更明确</div>
+              </div>
+            </div>
+          </div>
+          <div class="slider-wrap">
+            <input id="compare-range" type="range" min="0" max="100" value="50" aria-label="调整前后对比" />
+            <span class="pill" id="compare-label">50%</span>
+          </div>
+        </div>
+      </section>
+
+      <section class="page">
+        <div class="shell">
+          <p class="eyebrow">Page 06 / 风格切换</p>
+          <h2 class="title">同一个主题，<br/>也可以有四种气质</h2>
+          <div style="width:100%; max-width:600px; margin:16px auto;">
+            <img src="assets/images/gemini_1778156731065.jpg" alt="四种设计风格预览" style="width:100%; border-radius:16px;">
+          </div>
+          <div class="theme-grid">
+            <button class="theme active" data-theme="calm"><span class="name">清爽</span><span class="desc">白底、蓝紫、轻卡片。</span></button>
+            <button class="theme" data-theme="warm"><span class="name">温暖</span><span class="desc">奶油色、橙黄、松弛感。</span></button>
+            <button class="theme" data-theme="tech"><span class="name">科技</span><span class="desc">深蓝、霓虹、未来感。</span></button>
+            <button class="theme" data-theme="playful"><span class="name">活泼</span><span class="desc">高对比、跳色、年轻感。</span></button>
+          </div>
+          <div class="panel" id="theme-preview" style="padding:18px; background: linear-gradient(135deg, rgba(74,141,248,.12), rgba(107,92,246,.08));">
+            <div style="font-size:18px; font-weight:850; letter-spacing:-.03em;">清爽：更适合“设计工具”的品牌气质</div>
+            <div class="subtitle" style="margin-top:8px;">强调秩序、留白和清晰行动。不会抢内容，但会让内容更像成品。</div>
+          </div>
+          <div class="btn-row"><button class="btn btn-primary" data-next>进入最终页</button></div>
+        </div>
+      </section>
+
+      <section class="page">
+        <div class="shell">
+          <p class="eyebrow">Page 07 / 收尾与提交</p>
+          <h2 class="title">扫一扫，<br/>把作品提交出去</h2>
+          <div class="final-qr card" style="padding:18px; position:relative; overflow:hidden;">
+            <div class="spin-glow" style="right:-50px; top:-50px;"></div>
+            <div class="spin-glow" style="left:-80px; bottom:-80px; animation-delay:-5s;"></div>
+            <div class="qr pulse-glow" style="position:relative; z-index:1;"><img src="assets/images/qr-code.png" alt="作品提交二维码" style="width:160px;height:160px;"/></div>
+            <div style="text-align:center;">
+              <div style="font-size:18px; font-weight:850; letter-spacing:-.03em;">作品链接</div>
+              <div class="subtitle" style="margin-top:6px; word-break:break-all;">https://zyx667788.github.io/aliyun-h5/</div>
+            </div>
+          </div>
+          <div class="panel" style="padding:16px;">
+            <div class="small" style="font-weight:800; color: var(--text); letter-spacing:-.02em;">最终上交可直接写：</div>
+            <div class="list" style="margin-top:10px;">
+              <div>创意定位：把 Canva 的“人人都能设计”做成情景式互动体验。</div>
+              <div>策划方案：7 页竖屏 H5，导入、测试、对比、风格切换和收束扫码。</div>
+              <div>设计过程：先定主视觉，再压缩文案，最后把二维码放到末页完成闭环。</div>
+              <div>用户体验：单手操作、节奏清晰、点击反馈明确、信息更容易记住。</div>
+            </div>
+          </div>
+          <div class="footer-note">Thank you for visiting · H5 contest submission ready</div>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const scroller = document.getElementById('scroller');
+    const bar = document.getElementById('bar');
+    const dots = [...document.querySelectorAll('.dot')];
+    const pages = [...document.querySelectorAll('.page')];
+    const painCards = [...document.querySelectorAll('[data-pain]')];
+    const painText = document.getElementById('pain-text');
+    const modeButtons = [...document.querySelectorAll('[data-mode]')];
+    const modeTitle = document.getElementById('mode-title');
+    const modeDesc = document.getElementById('mode-desc');
+    const quizOptions = [...document.querySelectorAll('[data-quiz]')];
+    const quizResult = document.getElementById('quiz-result');
+    const compareRange = document.getElementById('compare-range');
+    const compareLabel = document.getElementById('compare-label');
+    const themeButtons = [...document.querySelectorAll('[data-theme]')];
+    const themePreview = document.getElementById('theme-preview');
+
+    const painMap = [
+      ['不会排版', '页面堆满内容时，先做信息层级，再做装饰。Canva 的模板能帮你快速得到一个稳的骨架。'],
+      ['没有灵感', '灵感不是凭空出现，而是从参考风格里拼出来。选一个视觉方向，工作会轻很多。'],
+      ['时间太赶', '时间越紧，越应该先选模板再改字。让设计从“搭建”变成“编辑”。'],
+    ];
+
+    const modeMap = {
+      poster: ['海报：一眼抓住主题', '适合活动、比赛、校园宣传。先定视觉中心，再补信息层级。'],
+      social: ['社媒图：一张图讲清楚', '适合小红书、朋友圈和社团传播。节奏短，视觉要更直接。'],
+      deck: ['课件页：内容结构最重要', '适合课堂展示和汇报。让逻辑比装饰更先被看见。'],
+      video: ['封面图：先让人点进来', '适合视频封面和封面海报。标题越短，点击越稳。'],
+    };
+
+    const quizMap = [
+      ['社团海报型创作者', '你最需要的是模板起步 + 快速替换文案。页面应该先帮你抓住主视觉，再补信息。'],
+      ['课程展示型创作者', '你最需要的是层级和秩序。先让老师看懂，再让同学觉得好看。'],
+      ['活动宣传型创作者', '你最需要的是气氛和传播感。标题、色彩、按钮都要更有冲击力。'],
+      ['视频封面型创作者', '你最需要的是点击欲。一个大标题、一张强图、一个明确情绪，足够了。'],
+    ];
+
+    const themeMap = {
+      calm:  ['#4a8df8', '#6b5cf6', '#ffbd38', '清爽：更适合“设计工具”的品牌气质', '强调秩序、留白和清晰行动。不会抢内容，但会让内容更像成品。'],
+      warm:  ['#f28f4b', '#f7b84b', '#ffe2b9', '温暖：更像一个轻松的创作手账', '适合更松弛的场景，给人一种“现在就能开始做”的感觉。'],
+      tech:  ['#00c2ff', '#4a5cff', '#101f3a', '科技：更强调工具效率与未来感', '适合展示产品力、流程感和快速完成任务的视觉表达。'],
+      playful:['#ff4d7d', '#ffbd38', '#8b5cf6', '活泼：更有年轻创意平台的气氛', '适合强调互动感、创作欲和轻量小游戏式体验。'],
+    };
+
+    function gotoPage(index) {
+      pages[index]?.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    }
+    document.querySelectorAll('[data-next]').forEach(btn => btn.addEventListener('click', () => {
+      const idx = Math.min(Math.max(0, Math.round(scroller.scrollTop / window.innerHeight) + 1), pages.length - 1);
+      gotoPage(idx);
+    }));
+    dots.forEach(dot => dot.addEventListener('click', () => gotoPage(Number(dot.dataset.goto))));
+
+    painCards.forEach((card, index) => card.addEventListener('click', () => {
+      painCards.forEach(c => c.classList.remove('active'));
+      card.classList.add('active');
+      const [title, desc] = painMap[index];
+      painText.innerHTML = `<p style="font-size:18px; font-weight:850; letter-spacing:-.03em;">${title}</p><p class="subtitle" style="margin-top:8px;">${desc}</p>`;
+    }));
+
+    modeButtons.forEach(btn => btn.addEventListener('click', () => {
+      const mode = btn.dataset.mode;
+      modeButtons.forEach(b => b.classList.toggle('on', b === btn));
+      const [title, desc] = modeMap[mode];
+      modeTitle.textContent = title;
+      modeDesc.textContent = desc;
+    }));
+
+    quizOptions.forEach((opt, index) => opt.addEventListener('click', () => {
+      quizOptions.forEach(o => o.classList.toggle('active', o === opt));
+      const [title, desc] = quizMap[index];
+      quizResult.innerHTML = `<p style="font-size:18px; font-weight:850; letter-spacing:-.03em;">结果：${title}</p><p class="subtitle" style="margin-top:8px;">${desc}</p>`;
+    }));
+
+    compareRange.addEventListener('input', () => {
+      const v = compareRange.value;
+      document.querySelector('.compare').style.setProperty('--split', `${v}%`);
+      compareLabel.textContent = `${v}%`;
+    });
+
+    themeButtons.forEach(btn => btn.addEventListener('click', () => {
+      const theme = btn.dataset.theme;
+      const [p, s, a, title, desc] = themeMap[theme];
+      themeButtons.forEach(b => b.classList.toggle('active', b === btn));
+      document.documentElement.style.setProperty('--primary', p);
+      document.documentElement.style.setProperty('--secondary', s);
+      document.documentElement.style.setProperty('--accent', a);
+      themePreview.innerHTML = `<div style="font-size:18px; font-weight:850; letter-spacing:-.03em;">${title}</div><div class="subtitle" style="margin-top:8px;">${desc}</div>`;
+    }));
+
+    const observer = new IntersectionObserver(entries => {
+      entries.forEach(entry => {
+        if (!entry.isIntersecting) return;
+        const i = pages.indexOf(entry.target);
+        dots.forEach((d, idx) => d.setAttribute('aria-current', String(idx === i)));
+        bar.style.width = `${((i + 1) / pages.length) * 100}%`;
+      });
+    }, { threshold: 0.65 });
+    pages.forEach(p => observer.observe(p));
+  </script>
+</body>
+</html>
