@@ -124,7 +124,8 @@
     .quiz-option.active { border-color: rgba(107,92,246,.34); box-shadow: 0 16px 30px rgba(107,92,246,.12); }
     .result-box { padding: 18px; border-radius: 24px; background: linear-gradient(180deg, rgba(74,141,248,.12), rgba(107,92,246,.08)); border: 1px solid rgba(74,141,248,.16); }
     .compare { position:relative; overflow:hidden; min-height: 340px; border-radius: 28px; border: 1px solid rgba(16,32,58,.08); background: rgba(255,255,255,.92); box-shadow: var(--shadow-soft); }
-    .compare .before, .compare .after { position:absolute; inset: 0; padding: 18px; }
+    .compare .before, .compare .after { position:absolute; inset: 0; padding: 18px; pointer-events: none; }
+    .compare .before, .compare .after > * { pointer-events: auto; }
     .compare .before { background: linear-gradient(180deg, #f7f3ec, #f0ebe1); color: #42392d; }
     .compare .after { background: linear-gradient(180deg, rgba(74,141,248,.10), rgba(107,92,246,.12)); clip-path: inset(0 0 0 var(--split, 50%)); }
     .compare .label { display:inline-flex; align-items:center; gap:8px; padding: 8px 11px; border-radius: 999px; font-size: 12px; font-weight: 850; letter-spacing:.06em; text-transform: uppercase; background: rgba(255,255,255,.86); border: 1px solid rgba(16,32,58,.08); }
@@ -216,6 +217,7 @@
       );
       animation: wave-flow 8s linear infinite;
       transform: rotate(-15deg);
+      pointer-events: none; /* 修复：不阻挡点击事件 */
     }
     @keyframes wave-flow {
       0% { transform: translateX(-50%) rotate(-15deg) translateY(0); }
